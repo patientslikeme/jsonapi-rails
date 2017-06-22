@@ -1,3 +1,4 @@
+require 'jsonapi/rails/active_model_errors'
 require 'jsonapi/serializable/renderer'
 
 module JSONAPI
@@ -16,9 +17,21 @@ module JSONAPI
       end
     end
 
-    class ErrorRenderer
+    class ErrorsRenderer
       def self.render(errors, options)
-        # TODO(beauby): SerializableError inference on AR validation errors.
+        errors = [errors] unless errors.is_a?(Array)
+        errors = errors.flat_map do |error|
+          if error.respond_to?(:as_jsonapi)
+            error
+          elsif error.is_a?(ActiveModel::Errors)
+            ActiveModelErrors.new(error, options[:_reverse_mapping]).to_a
+          elsif error.is_a?(Hash)
+            JSONAPI::Serializable::Error.create(error)
+          else
+            raise # TODO(lucas): Raise meaningful exception.
+          end
+        end
+
         JSONAPI::Serializable::ErrorRenderer.render(errors, options)
       end
     end

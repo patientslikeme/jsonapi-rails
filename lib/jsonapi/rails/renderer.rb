@@ -28,10 +28,8 @@ module JSONAPI
     # @api private
     def rails_renderer(renderer)
       proc do |json, options|
-        # Renderer proc is evaluated in the controller context, so it
-        # has access to the request object.
-        reverse_mapping = request.env[ActionController::REVERSE_MAPPING_KEY]
-        options = options.merge(_reverse_mapping: reverse_mapping)
+        # Renderer proc is evaluated in the controller context.
+        options = options.merge(_jsonapi_pointers: jsonapi_pointers)
         json = renderer.render(json, options) unless json.is_a?(String)
         self.content_type ||= Mime[:jsonapi]
         self.response_body = json

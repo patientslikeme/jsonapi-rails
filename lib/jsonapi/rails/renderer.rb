@@ -24,7 +24,7 @@ module JSONAPI
           if error.respond_to?(:as_jsonapi)
             error
           elsif error.is_a?(ActiveModel::Errors)
-            ActiveModelErrors.new(error, options[:_reverse_mapping]).to_a
+            ActiveModelErrors.new(error, options[:_jsonapi_pointers]).to_a
           elsif error.is_a?(Hash)
             JSONAPI::Serializable::Error.create(error)
           else
@@ -41,10 +41,8 @@ module JSONAPI
     # @api private
     def rails_renderer(renderer)
       proc do |json, options|
-        # Renderer proc is evaluated in the controller context, so it
-        # has access to the request object.
-        reverse_mapping = request.env[ActionController::REVERSE_MAPPING_KEY]
-        options = options.merge(_reverse_mapping: reverse_mapping)
+        # Renderer proc is evaluated in the controller context.
+        options = options.merge(_jsonapi_pointers: jsonapi_pointers)
         json = renderer.render(json, options) unless json.is_a?(String)
         self.content_type ||= Mime[:jsonapi]
         self.response_body = json

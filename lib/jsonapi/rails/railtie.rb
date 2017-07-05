@@ -18,7 +18,7 @@ module JSONAPI
       initializer 'jsonapi-rails.action_controller' do
         ActiveSupport.on_load(:action_controller) do
           require 'jsonapi/rails/action_controller'
-          extend ::JSONAPI::Rails::ActionController::ClassMethods
+          include ::JSONAPI::Rails::ActionController
 
           if JSONAPI::Rails.config.register_mime_type
             Mime::Type.register MEDIA_TYPE, :jsonapi

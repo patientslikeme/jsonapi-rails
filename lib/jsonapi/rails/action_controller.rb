@@ -6,9 +6,9 @@ module JSONAPI
     module ActionController
       extend ActiveSupport::Concern
 
-      REVERSE_MAPPING_KEY = 'jsonapi_deserializable.reverse_mapping'.freeze
+      JSONAPI_POINTERS_KEY = 'jsonapi_deserializable.jsonapi_pointers'.freeze
 
-      module ClassMethods
+      class_methods do
         def deserializable_resource(key, options = {}, &block)
           _deserializable(key, options,
                           JSONAPI::Deserializable::Resource, &block)
@@ -26,17 +26,14 @@ module JSONAPI
 
           before_action(options) do |controller|
             resource = klass.new(controller.params[:_jsonapi].to_unsafe_hash)
-            controller.request.env[REVERSE_MAPPING_KEY] =
+            controller.request.env[JSONAPI_POINTERS_KEY] =
               resource.reverse_mapping
             controller.params[key.to_sym] = resource.to_hash
           end
         end
       end
-
-      private
-
       def jsonapi_pointers
-        request.env[REVERSE_MAPPING_KEY]
+        request.env[JSONAPI_POINTERS_KEY]
       end
     end
   end

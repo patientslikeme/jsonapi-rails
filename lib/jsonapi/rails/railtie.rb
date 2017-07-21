@@ -12,8 +12,8 @@ module JSONAPI
     class Railtie < ::Rails::Railtie
       MEDIA_TYPE = 'application/vnd.api+json'.freeze
       RENDERERS = {
-        jsonapi:        JSONAPI::Rails.rails_renderer(SuccessRenderer),
-        jsonapi_errors: JSONAPI::Rails.rails_renderer(ErrorsRenderer)
+        jsonapi:       SuccessRenderer.new,
+        jsonapi_error: ErrorsRenderer.new
       }.freeze
 
       initializer 'jsonapi-rails.action_controller' do
@@ -34,8 +34,19 @@ module JSONAPI
           end
 
           if JSONAPI::Rails.config.register_renderers
-            RENDERERS.each do |key, renderer|
-              ::ActionController::Renderers.add(key, &renderer)
+            ::ActionController::Renderers.add(:jsonapi) do |resources, options|
+              self.content_type ||= Mime[:jsonapi]
+
+              RENDERERS[:jsonapi].render(resources, options).to_json
+            end
+
+            ::ActionController::Renderers.add(:jsonapi_error) do |errors, options|
+              # Renderer proc is evaluated in the controller context, so it
+              # has access to the jsonapi_pointers method.
+              options = options.merge(_jsonapi_pointers: jsonapi_pointers)
+              self.content_type ||= Mime[:jsonapi]
+
+              RENDERERS[:jsonapi_error].render(errors, options).to_json
             end
           end
 

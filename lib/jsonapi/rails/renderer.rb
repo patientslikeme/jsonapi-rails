@@ -4,7 +4,13 @@ require 'jsonapi/serializable/renderer'
 module JSONAPI
   module Rails
     class SuccessRenderer
-      def self.render(resources, options)
+      def initialize(renderer = JSONAPI::Serializable::SuccessRenderer.new)
+        @renderer = renderer
+
+        freeze
+      end
+
+      def render(resources, options)
         opts = options.dup
         # TODO(beauby): Move this to a global configuration.
         default_exposures = {
@@ -13,12 +19,18 @@ module JSONAPI
         opts[:expose] = default_exposures.merge!(opts[:expose] || {})
         opts[:jsonapi] = opts.delete(:jsonapi_object)
 
-        JSONAPI::Serializable::Renderer.render(resources, opts)
+        @renderer.render(resources, opts)
       end
     end
 
     class ErrorsRenderer
-      def self.render(errors, options)
+      def initialize(renderer = JSONAPI::Serializable::ErrorsRenderer.new)
+        @renderer = renderer
+
+        freeze
+      end
+
+      def render(errors, options)
         errors = [errors] unless errors.is_a?(Array)
         errors = errors.flat_map do |error|
           if error.respond_to?(:as_jsonapi)
@@ -32,20 +44,8 @@ module JSONAPI
           end
         end
 
-        JSONAPI::Serializable::ErrorRenderer.render(errors, options)
-      end
-    end
-
-    module_function
-
-    # @api private
-    def rails_renderer(renderer)
-      proc do |json, options|
-        # Renderer proc is evaluated in the controller context.
-        options = options.merge(_jsonapi_pointers: jsonapi_pointers)
-        json = renderer.render(json, options) unless json.is_a?(String)
-        self.content_type ||= Mime[:jsonapi]
-        self.response_body = json
+        # TODO(beauby): SerializableError inference on AR validation errors.
+        @renderer.render(errors, options)
       end
     end
   end

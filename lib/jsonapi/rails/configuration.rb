@@ -5,10 +5,11 @@ module JSONAPI
     DEFAULT_CONFIG = {
       register_parameter_parser: true,
       register_mime_type: true,
-      register_renderers: true
+      register_renderers: true,
+      extend_action_controller: true
     }.freeze
 
-    def self.configure(&block)
+    def self.configure
       yield config
     end
 

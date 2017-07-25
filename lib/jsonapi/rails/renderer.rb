@@ -10,16 +10,18 @@ module JSONAPI
         freeze
       end
 
-      def render(resources, options)
-        opts = options.dup
-        # TODO(beauby): Move this to a global configuration.
-        default_exposures = {
-          url_helpers: ::Rails.application.routes.url_helpers
-        }
-        opts[:expose] = default_exposures.merge!(opts[:expose] || {})
-        opts[:jsonapi] = opts.delete(:jsonapi_object)
+      def render(resources, options, controller)
+        options = options.dup
 
-        @renderer.render(resources, opts)
+        if (pagination_links = controller.jsonapi_pagination(resources))
+          (options[:links] ||= {}).merge!(pagination_links)
+        end
+        options[:expose]  =
+          controller.jsonapi_expose.merge!(options[:expose] || {})
+        options[:jsonapi] =
+          options[:jsonapi_object] || controller.jsonapi_object
+
+        @renderer.render(resources, options)
       end
     end
 
@@ -30,21 +32,10 @@ module JSONAPI
         freeze
       end
 
-      def render(errors, options)
-        errors = [errors] unless errors.is_a?(Array)
-        errors = errors.flat_map do |error|
-          if error.respond_to?(:as_jsonapi)
-            error
-          elsif error.is_a?(ActiveModel::Errors)
-            ActiveModelError.from_errors(error, options[:_jsonapi_pointers]).to_a
-          elsif error.is_a?(Hash)
-            JSONAPI::Serializable::Error.create(error)
-          else
-            raise # TODO(lucas): Raise meaningful exception.
-          end
-        end
-
+      def render(errors, options, controller)
+        options = options.merge(_jsonapi_pointers: controller.jsonapi_pointers)
         # TODO(beauby): SerializableError inference on AR validation errors.
+
         @renderer.render(errors, options)
       end
     end
